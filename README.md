@@ -1,7 +1,5 @@
 # millie-on-kitkat
 
-## 개요 및 저작권 안내
-
 Android 4.4 기반 전자책 단말기에서 밀리 e-ink 앱을 사용할 수 있도록 호환성을 보완하는 ReVanced 패치입니다.
 
 > [!CAUTION]
