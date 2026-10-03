@@ -1,0 +1,26 @@
+{
+  "revanced-cli-6.0.0-all.jar": {
+    "url": "https://github.com/ReVanced/revanced-cli/releases/download/v6.0.0/revanced-cli-6.0.0-all.jar",
+    "sha256": "c25549bc17d59d2eb94fa5f86e60e9b77a02772ca88f7050f8f1276f923a9958"
+  },
+  "kotlin-compiler-2.3.10.jar": {
+    "url": "https://repo.maven.apache.org/maven2/org/jetbrains/kotlin/kotlin-compiler/2.3.10/kotlin-compiler-2.3.10.jar",
+    "sha256": "205abc86c6b0a40bc1a318bb24a062c7eb9a99abb023ee276bf925e3732511c8"
+  },
+  "kotlin-script-runtime-2.3.10.jar": {
+    "url": "https://repo.maven.apache.org/maven2/org/jetbrains/kotlin/kotlin-script-runtime/2.3.10/kotlin-script-runtime-2.3.10.jar",
+    "sha256": "d0b3b08ecf8901c6610aa0e8efb29db3731bfbd96afd4f987cc817016b1e003e"
+  },
+  "annotations-26.0.2.jar": {
+    "url": "https://repo.maven.apache.org/maven2/org/jetbrains/annotations/26.0.2/annotations-26.0.2.jar",
+    "sha256": "2037be378980d3ba9333e97955f3b2cde392aa124d04ca73ce2eee6657199297"
+  },
+  "r8-8.13.17.jar": {
+    "url": "https://dl.google.com/dl/android/maven2/com/android/tools/r8/8.13.17/r8-8.13.17.jar",
+    "sha256": "d31fd0dc751d48740009cdd9a485126acb1d0d14c59b9f05579479940f4adf74"
+  },
+  "conscrypt-android-2.5.2.aar": {
+    "url": "https://repo.maven.apache.org/maven2/org/conscrypt/conscrypt-android/2.5.2/conscrypt-android-2.5.2.aar",
+    "sha256": "42d18979caf53f5ef68548c76d4c98b41adb910a32ad9448133f9c5b20bd65a3"
+  }
+}
