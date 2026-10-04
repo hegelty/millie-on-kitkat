@@ -18,7 +18,7 @@ Android 4.4 기반 전자책 단말기에서 밀리 e-ink 앱을 사용할 수 �
 ### 준비물
 
 - **Android 8 이상 휴대폰**과 [ReVanced Manager 2.6.0](https://github.com/ReVanced/revanced-manager/releases/tag/v2.6.0)
-- 정당한 권한으로 획득한 **밀리 e-ink 2.1.0.0 원본 APK** ([공식 다운로드](https://apis.millie.co.kr/v1/download/apk/millie-app-2.1.0.0.apk))
+- 정당한 권한으로 획득한 **밀리 e-ink 2.1.0.0 원본 APK** ([공식 다운로드]([https://apis.millie.co.kr/v1/download/apk/millie-app-2.1.0.0.apk](https://install.millie.co.kr/apk/millie-app-2.1.0.0.apk)))
 - 앱을 사용할 **Android 4.4 / ARMv7 전자책 단말기**
 
 일반 밀리의서재 앱, 다른 버전의 e-ink 앱, 이미 패치된 APK는 지원하지 않습니다.
@@ -36,7 +36,7 @@ https://raw.githubusercontent.com/hegelty/millie-on-kitkat/main/patches.json
 3. **패치 번들 URL**에 위 주소를 붙여 넣고 **추가**를 누릅니다. 다운로드가 끝나면 목록에 **Millie e-ink patches**가 나타나는지 확인합니다. **자동 업데이트**를 켜면 이후 패치 파일의 업데이트도 받을 수 있습니다.
 4. **앱 → 기기 저장소에서 선택**에서 원본 APK를 선택합니다.
 5. **패치 선택**에서 **Millie e-ink KitKat TLS** 하나만 선택하고 **패치**를 누릅니다. 다른 패치는 함께 선택하지 마세요.
-6. 완료되면 **저장 버튼(좌하단)**로 결과 파일을 저장합니다.
+6. 완료되면 **저장 버튼(좌하단)**으로 결과 파일을 저장합니다.
 
 위 메뉴 이름은 Manager 2.6.0 한국어를 기준으로 합니다. 앱 언어에 따라 표시가 다를 수 있습니다. 패치 파일이 업데이트되어도 단말기에 설치된 밀리 앱이 자동으로 바뀌지는 않습니다. 새 패치를 적용하려면 원본 APK를 다시 패치한 뒤 설치하세요.
 
