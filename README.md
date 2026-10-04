@@ -18,7 +18,7 @@ Android 4.4 기반 전자책 단말기에서 밀리 e-ink 앱을 사용할 수 �
 ### 준비물
 
 - **Android 8 이상 휴대폰**과 [ReVanced Manager 2.6.0](https://github.com/ReVanced/revanced-manager/releases/tag/v2.6.0)
-- 정당한 권한으로 획득한 **밀리 e-ink 2.1.0.0 원본 APK** ([공식 다운로드](https://apis.millie.co.kr/v1/download/apk/millie-app-2.1.0.0.apk](https://install.millie.co.kr/apk/millie-app-2.1.0.0.apk)))
+- 정당한 권한으로 획득한 **밀리 e-ink 2.1.0.0 원본 APK** ([공식 다운로드](https://apis.millie.co.kr/v1/download/apk/millie-app-2.1.0.0.apk]))
 - 앱을 사용할 **Android 4.4 / ARMv7 전자책 단말기**
 
 일반 밀리의서재 앱, 다른 버전의 e-ink 앱, 이미 패치된 APK는 지원하지 않습니다.
