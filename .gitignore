@@ -22,6 +22,7 @@
 !/revanced/dist/
 /revanced/dist/*
 !/revanced/dist/millie-eink-patches-0.1.0.rvp
+!/revanced/dist/millie-eink-patches-0.2.0.rvp
 !/revanced/dist/SHA256SUMS
 
 # APKs, signing credentials and local build output are never distributed.

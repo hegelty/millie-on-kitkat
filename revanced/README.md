@@ -12,15 +12,18 @@ Python 3와 JDK 17 이상이 필요합니다. `java`를 PATH에 등록하거나 
 python3 revanced/build.py
 ```
 
-출력은 [`dist/millie-eink-patches-0.1.0.rvp`](dist/millie-eink-patches-0.1.0.rvp)와 [`dist/SHA256SUMS`](dist/SHA256SUMS)입니다. `.rvp`에는 JVM 클래스, Android DEX, 차이 데이터, Conscrypt ARMv7 라이브러리 및 라이선스 고지가 들어갑니다. 의존성 캐시와 중간 결과는 Git에서 제외한 `work/revanced/`에 생성됩니다.
+출력은 [`dist/millie-eink-patches-0.2.0.rvp`](dist/millie-eink-patches-0.2.0.rvp)와 [`dist/SHA256SUMS`](dist/SHA256SUMS)입니다. `.rvp`에는 JVM 클래스, Android DEX, 차이 데이터, Conscrypt ARMv7 라이브러리 및 라이선스 고지가 들어갑니다. 의존성 캐시와 중간 결과는 Git에서 제외한 `work/revanced/`에 생성됩니다.
 
 이미 포함된 차이 데이터로 번들을 빌드할 때는 APK가 필요하지 않습니다. 패치 적용 검증에는 정당한 권한으로 획득한 원본 APK가 필요합니다.
 
 ```bash
-python3 revanced/build.py --test-apk /path/to/original.apk
+python3 revanced/build.py \
+  --test-apk /path/to/millie-app-2.1.0.0.apk \
+  --test-apk /path/to/millie-app-2.4.0.0.apk \
+  --reject-apk /path/to/millie-app-2.5.0.0.apk
 ```
 
-이 검사는 입력 변조, 재패치, 추가 DEX, 손상된 차이 데이터 및 암호화 자산을 거부하는지 확인합니다. APK는 빌드나 테스트 결과물로 배포하지 않습니다.
+`--test-apk`는 버전별로 반복해서 지정할 수 있고, `--reject-apk`는 선택 사항입니다. 이 검사는 두 버전의 기준 결과, 2.4의 암호화된 내부 DEX, 입력 변조, 재패치, 추가 DEX, 손상된 차이 데이터 및 암호화 자산을 확인합니다. 내부 버전이 2.4로 표시되는 2.5 파일도 거부해야 합니다. APK는 빌드나 테스트 결과물로 배포하지 않습니다.
 
 ## APK 내용 검증
 
@@ -30,13 +33,13 @@ Manager에서 직접 생성한 APK를 PC로 옮긴 뒤 실행합니다. Python 3
 python3 revanced/verify_apk.py /path/to/original.apk /path/to/patched.apk
 ```
 
-ZIP CRC, DEX 헤더·체크섬, 변경 파일 범위와 암호화 자산 내부의 무결성 기록을 검사합니다. APK 서명 검증은 Android SDK의 `apksigner`로 별도 수행합니다.
+지원 원본의 해시, ZIP CRC, DEX 헤더·체크섬과 기준 결과, 변경 파일 범위, 네이티브 수정 및 암호화 자산 내부의 무결성 기록을 검사합니다. 2.4에서는 `classes3.jet` 내부의 단일 DEX와 업데이트 안내 분기의 수정 범위도 검사합니다. APK 서명 검증은 Android SDK의 `apksigner`로 별도 수행합니다.
 
 ```bash
 apksigner verify --verbose /path/to/patched.apk
 ```
 
-검증 실패 시 해당 APK를 설치하거나 배포하지 마세요.
+검증 실패 시 해당 APK를 설치하거나 배포하지 마세요. CLI 6.0.0은 패치가 예외로 실패한 뒤에도 APK를 생성할 수 있으므로, 출력 파일이 생겼다는 사실만으로 성공을 판단하면 안 됩니다. 패치 성공 로그와 최종 내용 검증을 함께 확인하세요.
 
 ## 소스와 차이 데이터
 
@@ -45,11 +48,15 @@ apksigner verify --verbose /path/to/patched.apk
 | [MilliePatch.kt](src/main/kotlin/me/crema/patches/MilliePatch.kt) | ReVanced 연결 및 원시 리소스 입출력 |
 | [MillieCore.kt](src/main/kotlin/me/crema/patches/MillieCore.kt) | 입력 검사, DEX 차이 적용, 자산 갱신 |
 | [TlsInstaller.java](runtime/TlsInstaller.java) | 앱에 추가하는 TLS 초기화 코드 |
-| `payloads/*.delta.gz` | 원본 DEX에 적용할 copy/literal 차이 데이터 |
-| [inputs.properties](payloads/inputs.properties) | 지원하는 입력 파일의 SHA-256 |
+| `payloads/**/*.delta.gz` | 원본 DEX에 적용할 copy/literal 차이 데이터 |
+| [2.1 입력](payloads/inputs.properties) · [2.4 입력](payloads/2.4.0.0/inputs.properties) | 버전별로 지원하는 입력 파일의 SHA-256 |
 | [SelfTest.kt](src/test/kotlin/me/crema/patches/SelfTest.kt) | 적용 결과와 잘못된 입력에 대한 검사 |
 
-`classes.dex` 차이 데이터는 MultiDex 설치 후 TLS 초기화를 추가한 결과에서 생성했습니다. `classes5.dex` 차이 데이터는 업데이트 안내 분기를 수정하고 Conscrypt 2.5.2의 308개 클래스를 병합한 결과에서 생성했습니다. DEX 변환에는 smali/baksmali 2.5.2와 API 19 설정을 사용했습니다.
+2.1용 차이 데이터는 `payloads/`에 있습니다. `classes.dex`에는 MultiDex 설치 후 TLS 초기화를 추가하고, `classes5.dex`에는 업데이트 안내 분기 수정과 Conscrypt 2.5.2의 308개 클래스를 병합했습니다.
+
+2.4용 차이 데이터는 `payloads/2.4.0.0/`에 있습니다. 외부 `classes.dex`에는 `ApplicationMain.multiDex()` 직후의 TLS 초기화와 Conscrypt를 추가했습니다. `classes3.dex.delta.gz`는 `assets/classes3.jet`을 복호화하고 ZIP에서 추출한 내부 DEX에 적용합니다. 수정한 DEX를 다시 ZIP과 기존 AES 컨테이너로 포장합니다. 전체 DEX나 APK는 번들에 포함하지 않습니다.
+
+DEX 변환에는 smali/baksmali 2.5.2와 API 19 설정을 사용했습니다. JVM과 Android의 ZIP 구현에 따라 포장 바이트는 달라질 수 있으므로, 내부 DEX는 별도의 SHA-256으로 검증합니다.
 
 초기화 Java 파일은 변경 내용을 설명하는 소스이며, 현재 `build.py`는 이를 다시 컴파일하거나 차이 데이터를 재생성하지 않습니다. DEX 수정을 바꾸려면 별도로 원본과 수정 DEX를 준비한 뒤 차이 데이터를 다시 생성해야 합니다.
 

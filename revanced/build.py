@@ -15,6 +15,7 @@ REPO = ROOT.parent
 WORK = REPO / "work/revanced"
 TOOLS = WORK / "tools"
 CLI = TOOLS / "revanced-cli-6.0.0-all.jar"
+VERSION = "0.2.0"
 
 
 def java(*args):
@@ -50,8 +51,11 @@ def write_zip(path, entries):
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--test-apk", type=Path, help="Run core checks against a local original APK")
+    parser.add_argument("--test-apk", type=Path, action="append", default=[], help="Run core checks against a local original APK (repeat for both versions)")
+    parser.add_argument("--reject-apk", type=Path, action="append", default=[], help="Verify an unsupported APK is rejected (requires --test-apk)")
     args = parser.parse_args()
+    if args.reject_apk and not args.test_apk:
+        parser.error("--reject-apk requires at least one --test-apk")
     java("-version")
     download_tools()
     output = WORK / "patch-classes"
@@ -63,7 +67,8 @@ def main():
          "-Xskip-prerelease-check", "-no-stdlib", "-no-reflect", "-jvm-target", "17",
          "-cp", CLI, "-d", output, *sources)
     entries = {p.relative_to(output).as_posix(): p.read_bytes() for p in output.rglob("*") if p.is_file()}
-    entries.update({"millie/" + p.name: p.read_bytes() for p in (ROOT / "payloads").iterdir() if p.is_file()})
+    entries.update({"millie/" + p.relative_to(ROOT / "payloads").as_posix(): p.read_bytes()
+                    for p in (ROOT / "payloads").rglob("*") if p.is_file()})
     with zipfile.ZipFile(TOOLS / "conscrypt-android-2.5.2.aar") as aar:
         native = aar.read("jni/armeabi-v7a/libconscrypt_jni.so")
     assert hashlib.sha256(native).hexdigest() == (ROOT / "payloads/conscrypt.sha256").read_text().strip()
@@ -72,8 +77,8 @@ def main():
         entries["META-INF/licenses/" + p.name] = p.read_bytes()
     entries["META-INF/MANIFEST.MF"] = (
         "Manifest-Version: 1.0\r\nName: Millie e-ink patches\r\n"
-        "Description: KitKat TLS compatibility for Millie e-ink 2.1.0.0\r\n"
-        "Version: 0.1.0\r\nAuthor: millie-eink-repatch\r\n\r\n"
+        "Description: KitKat TLS compatibility for Millie e-ink 2.1.0.0 and 2.4.0.0\r\n"
+        f"Version: {VERSION}\r\nAuthor: millie-eink-repatch\r\n\r\n"
     ).encode()
     jvm = WORK / "patches-jvm.jar"
     write_zip(jvm, entries)
@@ -89,7 +94,7 @@ def main():
     assert "classes.dex" in entries, "Manager requires Android DEX inside the RVP"
     dist = ROOT / "dist"
     dist.mkdir(exist_ok=True)
-    bundle = dist / "millie-eink-patches-0.1.0.rvp"
+    bundle = dist / f"millie-eink-patches-{VERSION}.rvp"
     write_zip(bundle, entries)
     (dist / "SHA256SUMS").write_text(f"{hashlib.sha256(bundle.read_bytes()).hexdigest()}  {bundle.name}\n")
     java("-jar", CLI, "list-patches", "-p", bundle, "-b")
@@ -100,7 +105,9 @@ def main():
         java("-cp", str(TOOLS / "*"), "org.jetbrains.kotlin.cli.jvm.K2JVMCompiler",
              "-Xskip-prerelease-check", "-no-stdlib", "-no-reflect", "-jvm-target", "17",
              "-cp", cp, "-d", tests, *sorted((ROOT / "src/test/kotlin").rglob("*.kt")))
-        java("-cp", cp + os.pathsep + str(tests), "me.crema.patches.SelfTestKt", args.test_apk.resolve())
+        java("-cp", cp + os.pathsep + str(tests), "me.crema.patches.SelfTestKt",
+             *[str(p.resolve()) for p in args.test_apk],
+             *(["--reject"] + [str(p.resolve()) for p in args.reject_apk] if args.reject_apk else []))
     print(f"Built {bundle}", flush=True)
 
 

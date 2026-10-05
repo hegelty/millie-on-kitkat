@@ -10,12 +10,33 @@ import java.util.Properties
 import java.util.zip.Adler32
 import java.util.zip.CRC32
 import java.util.zip.GZIPInputStream
+import java.util.zip.ZipEntry
+import java.util.zip.ZipInputStream
+import java.util.zip.ZipOutputStream
 import javax.crypto.Cipher
 import javax.crypto.spec.IvParameterSpec
 import javax.crypto.spec.SecretKeySpec
 
 /** Pure JVM/Android implementation: no shell, native executable, or post-signing hook. */
 object MillieCore {
+    enum class Version(val appVersion: String, val prefix: String, val dexCount: Int) {
+        V21("2.1.0.0", "", 5),
+        V24("2.4.0.0", "2.4.0.0/", 1);
+
+        val dexNames get() = (1..dexCount).map { if (it == 1) "classes.dex" else "classes$it.dex" }
+    }
+
+    fun inputProfile(version: Version, payload: (String) -> ByteArray) = Properties().apply {
+        load(ByteArrayInputStream(payload("${version.prefix}inputs.properties")))
+    }
+
+    fun identifyVersion(manifest: ByteArray, payload: (String) -> ByteArray): Version {
+        val hash = sha256(manifest)
+        return requireNotNull(Version.entries.singleOrNull {
+            inputProfile(it, payload).getProperty("AndroidManifest.xml") == hash
+        }) { "Unsupported manifest. Select an original Millie e-ink 2.1.0.0 or 2.4.0.0 APK." }
+    }
+
     private fun digest(bytes: ByteArray, algorithm: String) =
         MessageDigest.getInstance(algorithm).digest(bytes)
 
@@ -31,7 +52,7 @@ object MillieCore {
             val sourceHash = bytes(32)
             val targetHash = bytes(32)
             require(input.readInt() == original.size && digest(original, "SHA-256").contentEquals(sourceHash)) {
-                "Unsupported or already patched DEX; select the original Millie e-ink 2.1.0.0 APK"
+                "Unsupported or already patched DEX; select the supported original APK"
             }
             val size = input.readInt()
             require(size in 1..16_777_216) { "Invalid delta output length" }
@@ -125,24 +146,64 @@ object MillieCore {
         listOf((it.toInt() ushr 4).toByte(), (it.toInt() and 15).toByte())
     }.toByteArray()
 
+    // The 2.4 application DEX lives in an encrypted single-entry ZIP. Bound reads
+    // before applying the DEX delta; do not distribute the complete ZIP or DEX.
+    fun patchPackedDex(asset: ByteArray, delta: ByteArray): ByteArray {
+        val archive = decodeAsset(asset).first
+        var timestamp = 0L
+        val original = ZipInputStream(ByteArrayInputStream(archive)).use { zip ->
+            val entry = requireNotNull(zip.nextEntry) { "Missing packed DEX" }
+            require(entry.name == "classes.dex" && !entry.isDirectory) { "Unexpected packed DEX entry" }
+            timestamp = entry.time
+            val out = ByteArrayOutputStream()
+            val buffer = ByteArray(8192)
+            while (true) {
+                val count = zip.read(buffer)
+                if (count < 0) break
+                require(out.size() + count <= 16_777_216) { "Packed DEX exceeds size limit" }
+                out.write(buffer, 0, count)
+            }
+            require(zip.nextEntry == null) { "Unexpected extra packed DEX entry" }
+            out.toByteArray()
+        }
+        validateDex(original)
+        val modified = applyDelta(original, delta)
+        val out = ByteArrayOutputStream()
+        ZipOutputStream(out).use { zip ->
+            zip.putNextEntry(ZipEntry("classes.dex").apply { time = timestamp })
+            zip.write(modified)
+            zip.closeEntry()
+        }
+        return encodeAsset(out.toByteArray(), asset)
+    }
+
     fun patch(files: Map<String, ByteArray>, payload: (String) -> ByteArray): Map<String, ByteArray> {
-        val profile = Properties().apply { load(ByteArrayInputStream(payload("inputs.properties"))) }
+        val version = identifyVersion(files.getValue("AndroidManifest.xml"), payload)
+        val profile = inputProfile(version, payload)
         for (name in profile.stringPropertyNames()) {
             require(sha256(files.getValue(name)) == profile.getProperty(name)) {
-                "Unsupported or modified input: $name. Use the original Millie e-ink 2.1.0.0 APK."
+                "Unsupported or modified input: $name. Use the supported original ${version.appVersion} APK (not the file named 2.5.0.0)."
             }
         }
-        require(!files.containsKey("classes6.dex")) { "Expected exactly five original DEX files" }
-        val changed = linkedMapOf<String, ByteArray>()
-        for (name in listOf("classes.dex", "classes5.dex")) {
-            changed[name] = applyDelta(files.getValue(name), payload("$name.delta.gz"))
+        val dexNames = version.dexNames
+        require(files.keys.filter { Regex("classes\\d*\\.dex").matches(it) }.toSet() == dexNames.toSet()) {
+            "Unexpected DEX layout for ${version.appVersion}"
         }
-        val dexNames = listOf("classes.dex", "classes2.dex", "classes3.dex", "classes4.dex", "classes5.dex")
+        require(!files.containsKey("lib/armeabi-v7a/libconscrypt_jni.so")) { "This APK already contains Conscrypt" }
+        val changed = linkedMapOf<String, ByteArray>()
+        val changedDex = if (version == Version.V21) listOf("classes.dex", "classes5.dex") else listOf("classes.dex")
+        for (name in changedDex) {
+            changed[name] = applyDelta(files.getValue(name), payload("${version.prefix}$name.delta.gz"))
+        }
+        if (version == Version.V24) {
+            changed["assets/classes3.jet"] = patchPackedDex(files.getValue("assets/classes3.jet"),
+                payload("${version.prefix}classes3.dex.delta.gz"))
+        }
         fun record(patched: Boolean) = dexNames.joinToString("") { name ->
             val value = crc(if (patched) changed[name] ?: files.getValue(name) else files.getValue(name))
             require(value != 0L) { "Unexpected zero DEX CRC" }
             "%08x".format(value)
-        } + "41424344".repeat(3)
+        } + "41424344".repeat(8 - dexNames.size)
         val oldRecord = record(false)
         val newRecord = record(true)
         val originalModule = files.getValue("assets/m7a")
@@ -163,7 +224,11 @@ object MillieCore {
         changed["assets/m7a"] = newModule
         val originalConfig = files.getValue("assets/agconfig")
         val config = decodeAsset(originalConfig).first
-        replaceUnique(config, "110:$oldRecord;".toByteArray(), "110:$newRecord;".toByteArray())
+        // In 2.4, config 110 describes the pre-packing DEX, not the outer DEX.
+        // Preserve it exactly; gc1 above covers the actual outer ZIP entries.
+        if (version == Version.V21) {
+            replaceUnique(config, "110:$oldRecord;".toByteArray(), "110:$newRecord;".toByteArray())
+        }
         replaceUnique(config, "141:${sha256(originalModule)};".toByteArray(), "141:${sha256(newModule)};".toByteArray())
         changed["assets/agconfig"] = encodeAsset(config, originalConfig)
         val native = payload("libconscrypt_jni.so")
