@@ -12,6 +12,14 @@
 
 초기화 코드는 [TlsInstaller.java](../revanced/runtime/TlsInstaller.java)에 있습니다. 2.1에서는 Conscrypt 클래스를 기존 `classes5.dex`에 병합하고 외부 DEX 다섯 개를 유지합니다. 2.4에서는 `ApplicationMain.multiDex()` 직후에 TLS를 초기화하며 Conscrypt와 초기화 코드를 외부 `classes.dex`에 병합합니다. 두 버전 모두 ARMv7용 `libconscrypt_jni.so`를 추가하고 Android 4.4에서 읽을 수 있는 DEX 035 형식을 사용합니다.
 
+## 2.4의 KitKat 리소스 검색
+
+2.4는 앱 코드를 별도 `DexClassLoader`로 읽습니다. KitKat에서 이 로더의 부모는 부트 클래스 로더이며, APK를 가리키는 `PathClassLoader`는 자식입니다. 따라서 앱 코드가 자신의 클래스 로더로 APK 내부 Kotlin 메타데이터를 요청하면 파일이 존재해도 찾지 못합니다. EPUB 뷰어 초기화에서 `Built-in class kotlin.Any is not found` 오류를 재현했습니다.
+
+0.2.1의 [ApkResourceInstaller.java](../revanced/runtime/ApkResourceInstaller.java)는 API 21 미만에서만 이 검색 경로를 보완합니다. Kotlin 리소스가 이미 보이면 아무것도 바꾸지 않습니다. 리소스가 보이지 않으면 설치 APK의 `sourceDir`을 가리키는 `URLClassLoader`를 별도 DEX 로더와 기존 부모 사이에 넣습니다. 이 로더는 APK ZIP의 리소스를 제공하며 APK의 DEX를 새로 로드하지 않습니다. 연결 전후에 Kotlin 메타데이터가 열리는지 확인하고, 실패하면 `MillieResources` 로그를 남깁니다.
+
+원본 Kotlin 메타데이터 일곱 개도 입력 해시 검사에 포함합니다. 계정·구독·도서 인증 경로에는 변경을 가하지 않습니다. 이 수정은 재현한 뷰어 초기화 오류에 대한 보완이며, 실기기의 모든 도서 열기·독서 동작을 보장하지 않습니다.
+
 ## 시작 및 재서명 호환성
 
 앱 시작을 막는 업데이트 안내 분기 한 곳을 수정합니다. 패치 후에는 원본과 다른 인증서로 서명되므로, 앱 내부 ARM 모듈에서 재서명으로 인한 실행 중단과 관련된 두 지점을 함께 조정합니다.

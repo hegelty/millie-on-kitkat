@@ -44,14 +44,14 @@ fun main(args: Array<String>) {
             "assets/m7a" to "6be98e8cdf5ad8ab9f9ce5fdad7f0fe9dbadab68eb3ea3e86cae3cb52c8fe3a3",
             "assets/agconfig" to "35d706e85e6f53f774720e26b3194db505a8eed95811bffa1fdc55730b9ef553",
         ) else mapOf(
-            "classes.dex" to "f31ab6af3f6994c4bd100aefcb2d2b6af8171c2ab23bacf79fe043e93e5b3b18",
-            "assets/m7a" to "66745767fa9f3b232d5f9b267a16aff111447297593b6ae7979ea006eee95cc6",
-            "assets/agconfig" to "78f97f6616f78159896df68d9c19da335adc184fe653e4c9e9dd4490b92524a5",
+            "classes.dex" to "25249d0440bf5bcb3eae79312ca7b4431a34607c716e24cf74fe1ae515c6a97d",
+            "assets/m7a" to "431807dfb9a260fdb00fb8f6c90dc2ae56763cdaeef9d15d81a002aeed1408ee",
+            "assets/agconfig" to "17c93273e292e30bbb160a8b687e90dad1aa646377c3f399a2a522f6cbfc51a0",
         )
         val nativePath = "lib/armeabi-v7a/libconscrypt_jni.so"
         val packedPaths = if (version == MillieCore.Version.V24) setOf("assets/classes3.jet") else emptySet()
         check(changed.keys == expected.keys + nativePath + packedPaths)
-        // Golden values are from the previously signed, runtime-tested APKs.
+        // Golden values are from independently assembled and signed fixture APKs.
         for ((name, hash) in expected) check(MillieCore.sha256(changed.getValue(name)) == hash) { "Golden mismatch: $name" }
         check(MillieCore.sha256(changed.getValue(nativePath)) == "ea54515c67cd123fd33d398c036849de9a57e0c148052348e828aed6381d72d0")
         for (name in version.dexNames) MillieCore.validateDex(changed[name] ?: files.getValue(name))

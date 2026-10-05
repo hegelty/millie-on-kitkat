@@ -12,7 +12,7 @@ Python 3와 JDK 17 이상이 필요합니다. `java`를 PATH에 등록하거나 
 python3 revanced/build.py
 ```
 
-출력은 [`dist/millie-eink-patches-0.2.0.rvp`](dist/millie-eink-patches-0.2.0.rvp)와 [`dist/SHA256SUMS`](dist/SHA256SUMS)입니다. `.rvp`에는 JVM 클래스, Android DEX, 차이 데이터, Conscrypt ARMv7 라이브러리 및 라이선스 고지가 들어갑니다. 의존성 캐시와 중간 결과는 Git에서 제외한 `work/revanced/`에 생성됩니다.
+출력은 [`dist/millie-eink-patches-0.2.1.rvp`](dist/millie-eink-patches-0.2.1.rvp)와 [`dist/SHA256SUMS`](dist/SHA256SUMS)입니다. `.rvp`에는 JVM 클래스, Android DEX, 차이 데이터, Conscrypt ARMv7 라이브러리 및 라이선스 고지가 들어갑니다. 의존성 캐시와 중간 결과는 Git에서 제외한 `work/revanced/`에 생성됩니다.
 
 이미 포함된 차이 데이터로 번들을 빌드할 때는 APK가 필요하지 않습니다. 패치 적용 검증에는 정당한 권한으로 획득한 원본 APK가 필요합니다.
 
@@ -48,13 +48,14 @@ apksigner verify --verbose /path/to/patched.apk
 | [MilliePatch.kt](src/main/kotlin/me/crema/patches/MilliePatch.kt) | ReVanced 연결 및 원시 리소스 입출력 |
 | [MillieCore.kt](src/main/kotlin/me/crema/patches/MillieCore.kt) | 입력 검사, DEX 차이 적용, 자산 갱신 |
 | [TlsInstaller.java](runtime/TlsInstaller.java) | 앱에 추가하는 TLS 초기화 코드 |
+| [ApkResourceInstaller.java](runtime/ApkResourceInstaller.java) | 2.4의 KitKat 클래스 로더에서 APK 리소스 검색 보완 |
 | `payloads/**/*.delta.gz` | 원본 DEX에 적용할 copy/literal 차이 데이터 |
 | [2.1 입력](payloads/inputs.properties) · [2.4 입력](payloads/2.4.0.0/inputs.properties) | 버전별로 지원하는 입력 파일의 SHA-256 |
 | [SelfTest.kt](src/test/kotlin/me/crema/patches/SelfTest.kt) | 적용 결과와 잘못된 입력에 대한 검사 |
 
 2.1용 차이 데이터는 `payloads/`에 있습니다. `classes.dex`에는 MultiDex 설치 후 TLS 초기화를 추가하고, `classes5.dex`에는 업데이트 안내 분기 수정과 Conscrypt 2.5.2의 308개 클래스를 병합했습니다.
 
-2.4용 차이 데이터는 `payloads/2.4.0.0/`에 있습니다. 외부 `classes.dex`에는 `ApplicationMain.multiDex()` 직후의 TLS 초기화와 Conscrypt를 추가했습니다. `classes3.dex.delta.gz`는 `assets/classes3.jet`을 복호화하고 ZIP에서 추출한 내부 DEX에 적용합니다. 수정한 DEX를 다시 ZIP과 기존 AES 컨테이너로 포장합니다. 전체 DEX나 APK는 번들에 포함하지 않습니다.
+2.4용 차이 데이터는 `payloads/2.4.0.0/`에 있습니다. 외부 `classes.dex`에는 `ApplicationMain.multiDex()` 직후의 TLS 초기화와 Conscrypt를 추가했습니다. 0.2.1부터는 KitKat에서 포장된 DEX를 읽는 클래스 로더에 APK 리소스 검색 경로도 연결합니다. 뷰어 초기화 시 Kotlin 메타데이터를 찾지 못해 발생하는 `Built-in class kotlin.Any is not found` 오류를 보완합니다. `classes3.dex.delta.gz`는 `assets/classes3.jet`을 복호화하고 ZIP에서 추출한 내부 DEX에 적용합니다. 수정한 DEX를 다시 ZIP과 기존 AES 컨테이너로 포장합니다. 전체 DEX나 APK는 번들에 포함하지 않습니다.
 
 DEX 변환에는 smali/baksmali 2.5.2와 API 19 설정을 사용했습니다. JVM과 Android의 ZIP 구현에 따라 포장 바이트는 달라질 수 있으므로, 내부 DEX는 별도의 SHA-256으로 검증합니다.
 
