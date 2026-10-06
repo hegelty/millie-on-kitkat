@@ -37,7 +37,7 @@ Android 4.4 기반 전자책 단말기에서 밀리 e-ink 앱을 사용할 수 �
 다음 소스 주소를 복사하세요.
 
 ```text
-https://raw.githubusercontent.com/hegelty/millie-on-kitkat/main/patches.json
+https://millie.hegelty.me/patches.json
 ```
 
 1. 휴대폰에 ReVanced Manager를 설치하고, 원본 APK를 저장합니다.
@@ -48,6 +48,8 @@ https://raw.githubusercontent.com/hegelty/millie-on-kitkat/main/patches.json
 6. 완료되면 **저장 버튼(좌하단)**으로 결과 파일을 저장합니다.
 
 위 메뉴 이름은 Manager 2.6.0 한국어를 기준으로 합니다. 앱 언어에 따라 표시가 다를 수 있습니다. 패치 파일이 업데이트되어도 단말기에 설치된 밀리 앱이 자동으로 바뀌지는 않습니다. 새 패치를 적용하려면 원본 APK를 다시 패치한 뒤 설치하세요.
+
+기존 GitHub Raw 주소로 등록했다면 소스를 위 주소로 다시 등록하세요. 기존 주소는 패치 다운로드를 계속 제공하지만, Manager의 **변경 사항 보기**는 새 주소에서 지원합니다.
 
 ### 두 패치의 차이
 

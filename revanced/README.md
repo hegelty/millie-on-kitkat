@@ -83,11 +83,23 @@ python3 revanced/make_delta.py original.dex modified.dex output.delta.gz
 
 ## 원격 패치 소스 배포
 
-공개 저장소는 `hegelty/millie-on-kitkat`, 기본 브랜치는 `main`을 기준으로 합니다. 저장소 루트의 [patches.json](../patches.json)이 Manager에 등록하는 소스이며, `download_url`은 같은 저장소의 `.rvp` 번들을 가리킵니다. 별도 API 서버나 APK 배포는 필요하지 않습니다.
+공개 저장소는 `hegelty/millie-on-kitkat`, 기본 브랜치는 `main`입니다. GitHub Pages는 `main`의 `/docs`를 게시하며, 사용자 지정 도메인은 `millie.hegelty.me`입니다. `docs/CNAME`과 `.nojekyll`을 함께 유지합니다.
 
-`patches.json`은 Manager 2.6.0의 [ReVancedAsset 형식](https://github.com/ReVanced/revanced-manager/blob/v2.6.0/app/src/main/java/app/revanced/manager/network/dto/ReVancedAsset.kt)을 사용합니다. `created_at`은 시간대 접미사가 없는 ISO 8601 날짜·시간이며, 현재 값은 번들의 빌드 기준 시각입니다.
+Manager에는 `https://millie.hegelty.me/patches.json`을 등록합니다. 번들 파일은 계속 GitHub Raw에서 받으며, APK는 배포하지 않습니다. 기존 루트의 `patches.json` 주소도 다운로드 호환성을 위해 유지합니다.
 
-새 번들을 배포할 때는 번들 파일과 `SHA256SUMS`를 갱신하고, `patches.json`의 `version`, `created_at`, `download_url`도 함께 수정합니다. Manager는 `version` 값으로 업데이트 여부를 비교하므로 같은 버전의 파일만 덮어쓰지 마세요. 생성한 APK와 서명 키는 업로드하지 않습니다.
+Manager 2.6.0의 [변경 이력 구현](https://github.com/ReVanced/revanced-manager/blob/v2.6.0/app/src/main/java/app/revanced/manager/domain/repository/ChangelogsRepository.kt)은 소스 URL에서 도메인만 추출하고 `/v5/patches/history`를 요청합니다. 따라서 GitHub Raw URL이나 도메인 하위 경로에만 배포하면 번들 상세 화면의 변경 이력이 동작하지 않습니다. `patches.json`에 문서 링크만 추가해도 해결되지 않습니다.
+
+[generate_site.py](generate_site.py)는 루트의 `patches.json`과 `CHANGELOG.md`를 읽어 다음 파일을 생성합니다. `build.py`도 빌드 완료 시 이 함수를 실행합니다.
+
+- `docs/patches.json`: 최신 번들 정보와 해당 버전의 변경 이력입니다.
+- `docs/v5/patches/history`: 공개 버전별 `version`, `created_at`, `description` 배열입니다.
+
+```bash
+python3 revanced/generate_site.py
+python3 revanced/generate_site.py --check
+```
+
+새 번들을 배포할 때는 `CHANGELOG.md`, `patches.json`의 `version`·`created_at`·`download_url`, 번들 파일과 `SHA256SUMS`를 갱신하고 생성된 Pages 파일도 함께 커밋합니다. 날짜는 시간대 접미사가 없는 ISO 8601 형식을 사용합니다. Manager는 버전으로 업데이트 여부를 비교하므로 같은 버전의 번들을 덮어쓰지 마세요. 변경 이력이나 호스팅 정보만 수정하는 경우에는 번들을 다시 빌드할 필요가 없습니다.
 
 ## 참고 자료와 라이선스
 

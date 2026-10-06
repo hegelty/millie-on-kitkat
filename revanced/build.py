@@ -10,6 +10,8 @@ import subprocess
 import urllib.request
 import zipfile
 
+from generate_site import generate
+
 ROOT = Path(__file__).resolve().parent
 REPO = ROOT.parent
 WORK = REPO / "work/revanced"
@@ -108,6 +110,7 @@ def main():
         java("-cp", cp + os.pathsep + str(tests), "me.crema.patches.SelfTestKt",
              *[str(p.resolve()) for p in args.test_apk],
              *(["--reject"] + [str(p.resolve()) for p in args.reject_apk] if args.reject_apk else []))
+    generate(REPO, VERSION)
     print(f"Built {bundle}", flush=True)
 
 

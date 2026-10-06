@@ -8,6 +8,7 @@
   - **Millie e-ink KitKat TLS**: TLS 관련 통신 오류를 수정하고, 업데이트 안내를 제거합니다.
   - **Millie e-ink EPUB touch**: 터치 시 지연이 발생하는 문제를 수정합니다.
 - 변경 이력을 추가하고 README에서 연결했습니다.
+- 패치 소스를 `https://millie.hegelty.me/patches.json`으로 제공하고, Manager의 **변경 사항 보기**에 필요한 변경 이력 API를 연결했습니다.
 - 패치 동작과 지원 앱 버전은 0.2.4와 같습니다.
 
 ## 0.2.4 (2026-10-06)

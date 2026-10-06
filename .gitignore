@@ -8,11 +8,17 @@
 !/revanced/
 /docs/*
 !/docs/PATCH-DESIGN.md
+!/docs/CNAME
+!/docs/.nojekyll
+!/docs/index.html
+!/docs/patches.json
+!/docs/v5/
 /revanced/*
 !/revanced/.gitignore
 !/revanced/README.md
 !/revanced/VERIFICATION.md
 !/revanced/build.py
+!/revanced/generate_site.py
 !/revanced/make_delta.py
 !/revanced/verify_apk.py
 !/revanced/tools.lock.json
