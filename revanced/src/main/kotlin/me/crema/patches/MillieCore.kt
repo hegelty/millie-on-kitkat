@@ -177,6 +177,19 @@ object MillieCore {
         return encodeAsset(out.toByteArray(), asset)
     }
 
+    // The TLS dependency validates the original APK and supplies the startup fix.
+    // Delta input hashes also prevent applying touch fixes twice or out of order.
+    fun patchTouch(files: Map<String, ByteArray>, payload: (String) -> ByteArray): Map<String, ByteArray> {
+        val version = identifyVersion(files.getValue("AndroidManifest.xml"), payload)
+        require(version == Version.V24) { "EPUB touch fixes support only Millie e-ink 2.4.0.0" }
+        return mapOf(
+            "assets/classes.jet" to patchPackedDex(files.getValue("assets/classes.jet"),
+                payload("${version.prefix}classes1.dex.delta.gz")),
+            "assets/classes3.jet" to patchPackedDex(files.getValue("assets/classes3.jet"),
+                payload("${version.prefix}classes3-touch.dex.delta.gz")),
+        )
+    }
+
     fun patch(files: Map<String, ByteArray>, payload: (String) -> ByteArray): Map<String, ByteArray> {
         val version = identifyVersion(files.getValue("AndroidManifest.xml"), payload)
         val profile = inputProfile(version, payload)

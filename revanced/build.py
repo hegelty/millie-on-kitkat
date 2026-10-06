@@ -15,7 +15,7 @@ REPO = ROOT.parent
 WORK = REPO / "work/revanced"
 TOOLS = WORK / "tools"
 CLI = TOOLS / "revanced-cli-6.0.0-all.jar"
-VERSION = "0.2.1"
+VERSION = "0.2.4"
 
 
 def java(*args):

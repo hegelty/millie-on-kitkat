@@ -38,7 +38,27 @@ val millieKitKatTlsPatch = ResourcePatchBuilder(PatchType.RAW_RESOURCE).let { bu
     }
     builder.build(
     "Millie e-ink KitKat TLS",
-    "Adds Conscrypt and startup compatibility fixes to original Millie e-ink 2.1.0.0 and 2.4.0.0 for ARMv7 Android 4.4. The file named 2.5.0.0 is not supported. Select this patch alone.",
+    "Adds Conscrypt and startup compatibility fixes to original Millie e-ink 2.1.0.0 and 2.4.0.0 on ARMv7 Android 4.4. EPUB touch fixes are separately selectable. The file named 2.5.0.0 is not supported.",
     true,
+    )
+}
+
+val millieEpubTouchPatch = ResourcePatchBuilder(PatchType.RAW_RESOURCE).let { builder ->
+    builder.compatibleWith("kr.co.millie.eink" to setOf("2.4.0.0"))
+    builder.dependsOn(millieKitKatTlsPatch)
+    builder.apply {
+        try {
+            val files = listOf("AndroidManifest.xml", "assets/classes.jet", "assets/classes3.jet")
+                .associateWith { get(it).readBytes() }
+            val changed = MillieCore.patchTouch(files, Payloads::read)
+            changed.forEach { (name, bytes) -> get(name, false).writeBytes(bytes) }
+        } catch (failure: Exception) {
+            throw PatchException("Millie e-ink EPUB touch patch failed: ${failure.message}", failure)
+        }
+    }
+    builder.build(
+        "Millie e-ink EPUB touch",
+        "Reduces EPUB touch latency on Android 4.4 in original Millie e-ink 2.4.0.0. Requires Millie e-ink KitKat TLS, which is applied automatically. Does not support 2.1.0.0.",
+        false,
     )
 }

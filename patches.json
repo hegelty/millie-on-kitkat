@@ -1,6 +1,6 @@
 {
-  "download_url": "https://raw.githubusercontent.com/hegelty/millie-on-kitkat/main/revanced/dist/millie-eink-patches-0.2.1.rvp",
-  "created_at": "2026-10-05T00:00:00",
+  "download_url": "https://raw.githubusercontent.com/hegelty/millie-on-kitkat/main/revanced/dist/millie-eink-patches-0.2.4.rvp",
+  "created_at": "2026-10-06T00:00:00",
   "description": "밀리 e-ink 2.1.0.0·2.4.0.0의 Android 4.4 / ARMv7 호환 패치 (실험 버전)",
-  "version": "0.2.1"
+  "version": "0.2.4"
 }

@@ -27,7 +27,10 @@ fun main(args: Array<String>) {
         names.associateWith { name -> zip.getInputStream(zip.getEntry(name)).use { it.readBytes() } }
     }
     check(millieKitKatTlsPatch.type == PatchType.RAW_RESOURCE)
-    println("PASS raw-resource patch type")
+    check(millieEpubTouchPatch.type == PatchType.RAW_RESOURCE)
+    check(millieEpubTouchPatch.dependencies == setOf(millieKitKatTlsPatch))
+    check(millieKitKatTlsPatch.use && !millieEpubTouchPatch.use)
+    println("PASS patch types, dependency and optional touch default")
     var rejectInput = false
     for (arg in args) {
         if (arg == "--reject") { rejectInput = true; continue }
@@ -56,12 +59,32 @@ fun main(args: Array<String>) {
         check(MillieCore.sha256(changed.getValue(nativePath)) == "ea54515c67cd123fd33d398c036849de9a57e0c148052348e828aed6381d72d0")
         for (name in version.dexNames) MillieCore.validateDex(changed[name] ?: files.getValue(name))
         if (version == MillieCore.Version.V24) {
+            check("assets/classes.jet" !in changed)
             ZipInputStream(ByteArrayInputStream(MillieCore.decodeAsset(changed.getValue("assets/classes3.jet")).first)).use { zip ->
+                check(zip.nextEntry.name == "classes.dex")
+                check(MillieCore.sha256(zip.readBytes()) == "0f385db480ba8db79d261b6ba4f24ccce382267ee7d24cc78dce8e1f127833fb")
+            }
+            val touchChanged = MillieCore.patchTouch(files + changed, ::payload)
+            check(touchChanged.keys == setOf("assets/classes.jet", "assets/classes3.jet"))
+            rejects("touch before TLS dependency") { MillieCore.patchTouch(files, ::payload) }
+            rejects("touch applied twice") { MillieCore.patchTouch(files + changed + touchChanged, ::payload) }
+            ZipInputStream(ByteArrayInputStream(MillieCore.decodeAsset(touchChanged.getValue("assets/classes.jet")).first)).use { zip ->
                 check(zip.nextEntry.name == "classes.dex")
                 val dex = zip.readBytes()
                 MillieCore.validateDex(dex)
-                check(MillieCore.sha256(dex) == "0f385db480ba8db79d261b6ba4f24ccce382267ee7d24cc78dce8e1f127833fb")
+                check(MillieCore.sha256(dex) == "a6ab3d58f8421571c07100089c346a094b3e70d70315e4ca159a92874db6d2db")
                 check(zip.nextEntry == null)
+            }
+            ZipInputStream(ByteArrayInputStream(MillieCore.decodeAsset(touchChanged.getValue("assets/classes3.jet")).first)).use { zip ->
+                check(zip.nextEntry.name == "classes.dex")
+                val dex = zip.readBytes()
+                MillieCore.validateDex(dex)
+                check(MillieCore.sha256(dex) == "061a37336962409d781c608429cd738e99381b527b654310e839780e22eac80e")
+                check(zip.nextEntry == null)
+            }
+            rejects("touch delta applied to wrong packed DEX") {
+                MillieCore.patchPackedDex(files.getValue("assets/classes3.jet"),
+                    payload("${version.prefix}classes1.dex.delta.gz"))
             }
             val asset = files.getValue("assets/classes3.jet")
             val delta = payload("${version.prefix}classes3.dex.delta.gz")
@@ -71,6 +94,9 @@ fun main(args: Array<String>) {
                 zip.putNextEntry(ZipEntry("unexpected.dex")); zip.write(byteArrayOf(1)); zip.closeEntry()
             }
             rejects("unexpected packed ZIP entry") { MillieCore.patchPackedDex(MillieCore.encodeAsset(out.toByteArray(), asset), delta) }
+        }
+        if (version == MillieCore.Version.V21) {
+            rejects("touch on 2.1") { MillieCore.patchTouch(files + changed, ::payload) }
         }
         val module = files.getValue("assets/m7a")
         check(MillieCore.encodeAsset(MillieCore.decodeAsset(module).first, module).contentEquals(module))

@@ -46,7 +46,55 @@ def unpack_dex(asset):
         return archive.read("classes.dex")
 
 
-def verify(original, patched):
+def method_instructions(data, descriptor, name):
+    """Locate one unambiguous method without relying on DEX file offsets."""
+    def u32(offset):
+        return struct.unpack_from("<I", data, offset)[0]
+
+    def uleb(offset):
+        value = 0
+        for shift in range(0, 35, 7):
+            byte = data[offset]
+            offset += 1
+            value |= (byte & 127) << shift
+            if not byte & 128:
+                return value, offset
+        raise AssertionError("Invalid ULEB128")
+
+    strings = []
+    for index in range(u32(56)):
+        _, start = uleb(u32(u32(60) + index * 4))
+        strings.append(data[start:data.index(0, start)])
+    types = [strings[u32(u32(68) + index * 4)] for index in range(u32(64))]
+    matches = []
+    for index in range(u32(96)):
+        offset = u32(100) + index * 32
+        if types[u32(offset)] != descriptor.encode():
+            continue
+        cursor = u32(offset + 24)
+        assert cursor
+        sizes = []
+        for _ in range(4):
+            size, cursor = uleb(cursor)
+            sizes.append(size)
+        for _ in range(sizes[0] + sizes[1]):
+            _, cursor = uleb(cursor)
+            _, cursor = uleb(cursor)
+        for count in sizes[2:]:
+            method_id = 0
+            for _ in range(count):
+                difference, cursor = uleb(cursor)
+                method_id += difference
+                _, cursor = uleb(cursor)
+                code, cursor = uleb(cursor)
+                if strings[u32(u32(92) + method_id * 8 + 4)] == name.encode():
+                    assert code
+                    matches.append(data[code + 16:code + 16 + u32(code + 12) * 2])
+    assert len(matches) == 1, (descriptor, name, len(matches))
+    return matches[0]
+
+
+def verify(original, patched, touch=False):
     payloads = Path(__file__).resolve().parent / "payloads"
     with zipfile.ZipFile(original) as before, zipfile.ZipFile(patched) as after:
         assert before.testzip() is None
@@ -65,13 +113,17 @@ def verify(original, patched):
         folder, profile = profiles[version]
         for name, expected_hash in profile.items():
             assert hashlib.sha256(before.read(name)).hexdigest() == expected_hash, name
+        assert not touch or version == "2.4.0.0", "Touch patch supports only 2.4.0.0"
         count = 5 if version == "2.1.0.0" else 1
         dex_names = ["classes.dex", *[f"classes{i}.dex" for i in range(2, count + 1)]]
         for archive in (before, after):
             assert sorted(n for n in archive.namelist() if re.fullmatch(r"classes\d*\.dex", n)) == dex_names
         changed = [n for n in before.namelist() if not n.startswith("META-INF/") and before.read(n) != after.read(n)]
         secondary = "classes5.dex" if count == 5 else "assets/classes3.jet"
-        assert set(changed) == {"classes.dex", secondary, "assets/m7a", "assets/agconfig"}, changed
+        expected_changes = {"classes.dex", secondary, "assets/m7a", "assets/agconfig"}
+        if touch:
+            expected_changes.add("assets/classes.jet")
+        assert set(changed) == expected_changes, changed
         additions = set(after.namelist()) - set(before.namelist())
         native = "lib/armeabi-v7a/libconscrypt_jni.so"
         assert {n for n in additions if not n.startswith("META-INF/")} == {native}
@@ -81,15 +133,23 @@ def verify(original, patched):
         if count == 5:
             targets["classes5.dex"] = after.read("classes5.dex")
         else:
+            event_dex = unpack_dex(after.read("assets/classes.jet"))
+            dex["assets/classes.jet!classes.dex"] = dex_info(event_dex)
+            if touch:
+                targets["classes1.dex"] = event_dex
+            else:
+                assert b"Lme/crema/millietls/ContentEventMapper;" not in event_dex
             old_inner, inner = unpack_dex(before.read(secondary)), unpack_dex(after.read(secondary))
             dex["assets/classes3.jet!classes.dex"] = dex_info(inner)
-            targets["classes3.dex"] = inner
-            branch = 2841748 + 16 + 14 * 2
-            assert old_inner[branch:branch + 4] == bytes.fromhex("39080300")
-            assert inner[branch:branch + 4] == bytes.fromhex("29006800")
-            assert len(inner) == len(old_inner)
-            assert all(8 <= i < 32 or branch <= i < branch + 4
-                       for i, (a, b) in enumerate(zip(old_inner, inner)) if a != b)
+            targets["classes3-touch.dex" if touch else "classes3.dex"] = inner
+            callback = "Lkr/co/millie/eink/SplashActivity$getAppUpdateNoticeInfo$1;"
+            assert method_instructions(old_inner, callback, "onResponse")[28:32] == bytes.fromhex("39080300")
+            assert method_instructions(inner, callback, "onResponse")[28:32] == bytes.fromhex("29006800")
+            if touch:
+                method_instructions(inner, "Lme/crema/millietls/EpubTouchCompat;", "rewrite")
+            else:
+                assert b"Lme/crema/millietls/EpubTouchCompat;" not in inner
+            assert b"MillieTouch" not in inner and b"CREMA_TRACE" not in inner
         for name, data in targets.items():
             delta = gzip.decompress((folder / (name + ".delta.gz")).read_bytes())
             assert delta[:6] == b"MDLT01"
@@ -117,7 +177,7 @@ def verify(original, patched):
             expected_config = re.sub(rb"110:[0-9a-f]{64};", b"110:" + expected.encode() + b";", expected_config)
         assert config == expected_config, "Unexpected config change (2.4 must preserve 110)"
         assert b"141:" + hashlib.sha256(after.read("assets/m7a")).hexdigest().encode() + b";" in config
-        return {"app_version": version, "zip_crc_valid": True, "dex_count": count, "dex": dex,
+        return {"app_version": version, "touch_patch": touch, "zip_crc_valid": True, "dex_count": count, "dex": dex,
                 "changed_original_entries": sorted(changed), "gc1_matches": True,
                 "config_110": "updated" if count == 5 else "preserved",
                 "config_141_matches": True, "module_changes_limited": True,
@@ -128,5 +188,6 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("original", type=Path)
     parser.add_argument("patched", type=Path)
+    parser.add_argument("--touch", action="store_true", help="Expect the optional EPUB touch patch in addition to TLS")
     args = parser.parse_args()
-    print(json.dumps(verify(args.original, args.patched), indent=2))
+    print(json.dumps(verify(args.original, args.patched, args.touch), indent=2))
