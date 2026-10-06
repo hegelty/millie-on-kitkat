@@ -38,7 +38,7 @@ val millieKitKatTlsPatch = ResourcePatchBuilder(PatchType.RAW_RESOURCE).let { bu
     }
     builder.build(
     "Millie e-ink KitKat TLS",
-    "Adds Conscrypt and startup compatibility fixes to original Millie e-ink 2.1.0.0 and 2.4.0.0 on ARMv7 Android 4.4. EPUB touch fixes are separately selectable. The file named 2.5.0.0 is not supported.",
+    "TLS 관련 통신 오류를 수정하고, 업데이트 안내를 제거합니다.",
     true,
     )
 }
@@ -58,7 +58,7 @@ val millieEpubTouchPatch = ResourcePatchBuilder(PatchType.RAW_RESOURCE).let { bu
     }
     builder.build(
         "Millie e-ink EPUB touch",
-        "Reduces EPUB touch latency on Android 4.4 in original Millie e-ink 2.4.0.0. Requires Millie e-ink KitKat TLS, which is applied automatically. Does not support 2.1.0.0.",
+        "터치 시 지연이 발생하는 문제를 수정합니다.",
         false,
     )
 }

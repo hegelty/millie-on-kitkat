@@ -12,7 +12,7 @@ Python 3와 JDK 17 이상이 필요합니다. `java`를 PATH에 등록하거나 
 python3 revanced/build.py
 ```
 
-출력은 [`dist/millie-eink-patches-0.2.4.rvp`](dist/millie-eink-patches-0.2.4.rvp)와 [`dist/SHA256SUMS`](dist/SHA256SUMS)입니다. `.rvp`에는 JVM 클래스, Android DEX, 차이 데이터, Conscrypt ARMv7 라이브러리 및 라이선스 고지가 들어갑니다. 의존성 캐시와 중간 결과는 Git에서 제외한 `work/revanced/`에 생성됩니다.
+출력은 [`dist/millie-eink-patches-0.2.5.rvp`](dist/millie-eink-patches-0.2.5.rvp)와 [`dist/SHA256SUMS`](dist/SHA256SUMS)입니다. `.rvp`에는 JVM 클래스, Android DEX, 차이 데이터, Conscrypt ARMv7 라이브러리 및 라이선스 고지가 들어갑니다. 의존성 캐시와 중간 결과는 Git에서 제외한 `work/revanced/`에 생성됩니다.
 
 이미 포함된 차이 데이터로 번들을 빌드할 때는 APK가 필요하지 않습니다. 패치 적용 검증에는 정당한 권한으로 획득한 원본 APK가 필요합니다.
 

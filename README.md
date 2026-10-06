@@ -24,7 +24,7 @@ Android 4.4 기반 전자책 단말기에서 밀리 e-ink 앱을 사용할 수 �
 
 ### 지원 앱 버전
 
-패치 번들 **0.2.4**는 다음 원본 APK를 지원합니다.
+패치 번들 **0.2.5**는 다음 원본 APK를 지원합니다.
 
 | 앱 버전    | 원본 APK                                                                      |        |
 | ------- | --------------------------------------------------------------------------- | ------ |
@@ -71,6 +71,7 @@ https://raw.githubusercontent.com/hegelty/millie-on-kitkat/main/patches.json
 
 ## 상세 분석
 
+- [변경 이력](CHANGELOG.md)
 - [수정 원리와 적용 범위](docs/PATCH-DESIGN.md)
 - [검증 결과와 알려진 제한 사항](revanced/VERIFICATION.md)
 - [패치 소스 빌드 및 검증 방법](revanced/README.md)
